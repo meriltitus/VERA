@@ -44,7 +44,7 @@ def embed_and_store(chunks: List[Dict[str, Any]], collection_name: str = "vera_d
 
     log.info(f"Initializing Ollama embeddings with model: {settings.ollama_model}")
     embedder = OllamaEmbeddings(
-        model=settings.embedding_model,
+        model=settings.ollama_embed_model,
         base_url=settings.ollama_base_url,
     )
 
