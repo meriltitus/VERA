@@ -166,11 +166,12 @@ with st.sidebar:
 
     if uploaded_file and uploaded_file.name not in st.session_state.ingested_files:
         with st.spinner(f"Ingesting {uploaded_file.name}..."):
+            # Write to temp file but keep the real filename for citations
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
                 tmp.write(uploaded_file.read())
                 tmp_path = tmp.name
             try:
-                result = run_ingestion(tmp_path)
+                result = run_ingestion(tmp_path, real_filename=uploaded_file.name)
                 st.session_state.ingested_files.append(uploaded_file.name)
                 st.success(f"✅ {uploaded_file.name} — {result['chunks_stored']} chunks added")
             except Exception as e:

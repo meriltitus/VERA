@@ -11,17 +11,18 @@ log = get_logger(__name__)
 settings = get_settings()
 
 
-def load_and_chunk_pdf(pdf_path: str) -> List[Dict[str, Any]]:
+def load_and_chunk_pdf(pdf_path: str, real_filename: str = None) -> List[Dict[str, Any]]:
     """
     Loads a PDF and splits it into chunks with citation metadata.
 
     Args:
         pdf_path: Absolute or relative path to the PDF file.
+        real_filename: Original filename to store in citations instead of temp path.
 
     Returns:
         List of dicts, each with:
             - text: the chunk content
-            - source: filename
+            - source: filename (real name, not temp path)
             - page: page number (1-indexed)
             - chunk_id: unique identifier
     """
@@ -29,11 +30,16 @@ def load_and_chunk_pdf(pdf_path: str) -> List[Dict[str, Any]]:
     if not path.exists():
         raise FileNotFoundError(f"PDF not found: {pdf_path}")
 
-    log.info(f"Loading PDF: {path.name}")
+    # Use real filename for display/citations, fall back to actual filename
+    source_name = real_filename or path.name
+    # Use stem (no extension) for chunk IDs, sanitized
+    source_stem = Path(source_name).stem.replace(" ", "_")
+
+    log.info(f"Loading PDF: {source_name}")
 
     loader = PyPDFLoader(str(path))
     raw_pages = loader.load()
-    log.info(f"Loaded {len(raw_pages)} pages from {path.name}")
+    log.info(f"Loaded {len(raw_pages)} pages from {source_name}")
 
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=settings.chunk_size,
@@ -48,9 +54,9 @@ def load_and_chunk_pdf(pdf_path: str) -> List[Dict[str, Any]]:
     for i, chunk in enumerate(chunks):
         results.append({
             "text": chunk.page_content.strip(),
-            "source": path.name,
-            "page": chunk.metadata.get("page", 0) + 1,  # 1-indexed
-            "chunk_id": f"{path.stem}_chunk_{i:04d}",
+            "source": source_name,          # ← real filename, not tmp path
+            "page": chunk.metadata.get("page", 0) + 1,
+            "chunk_id": f"{source_stem}_chunk_{i:04d}",
         })
 
     # Filter out empty chunks
