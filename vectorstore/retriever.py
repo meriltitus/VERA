@@ -72,6 +72,13 @@ def retrieve(query: str, collection_name: str = "vera_docs") -> List[Dict[str, A
             "chunk_id": meta.get("chunk_id", "?"),
         })
 
+    # Filter out low-relevance chunks — score above 0.7 means poor cosine match
+    output = [r for r in output if r["score"] <= 0.7]
+
+    if not output:
+        log.info("No relevant chunks found — query likely outside document scope")
+        return []
+
     log.info(f"Retrieved {len(output)} chunks. Top match: '{output[0]['source']}' p.{output[0]['page']} (score={output[0]['score']})")
     return output
 
