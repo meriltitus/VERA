@@ -145,13 +145,4 @@ vera/
 
 ---
 
-## V1.1 Roadmap
-- PDF page viewer on citation click
-- Mastery Export — generate a study summary PDF after Devil's Advocate sessions
-- Persistent document library
-- Word document (.docx) support
-- Image upload with OCR
-
----
-
 *Built by Meril Titus — github.com/meriltitus/VERA*
