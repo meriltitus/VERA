@@ -1,7 +1,7 @@
 from typing import Dict, Any
 
 from langchain_ollama import OllamaLLM
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 
 from aggregator.citation_mapper import build_context_block, build_citations
 from utils.config import get_settings

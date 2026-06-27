@@ -2,8 +2,8 @@
 title VERA
 color 0A
 
-:: Navigate to vera folder
-cd /d "%~dp0vera"
+:: Navigate to project root folder
+cd /d "%~dp0"
 
 :: Check if venv exists
 if not exist .venv (

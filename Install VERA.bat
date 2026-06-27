@@ -47,8 +47,8 @@ if %errorlevel% neq 0 (
 echo  [OK] Ollama found.
 echo.
 
-:: Navigate to vera folder
-cd /d "%~dp0vera"
+:: Navigate to project root folder
+cd /d "%~dp0"
 
 :: Create virtual environment
 echo  Setting up Python environment...
@@ -65,8 +65,6 @@ echo.
 echo  Installing dependencies (this may take a few minutes)...
 call .venv\Scripts\activate.bat
 pip install -r requirements.txt --quiet
-pip install pydantic-settings==2.4.0 --quiet
-pip install python-pptx==0.6.23 --quiet
 echo  [OK] Dependencies installed.
 echo.
 

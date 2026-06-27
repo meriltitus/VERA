@@ -90,7 +90,7 @@ Your browser will open automatically with VERA ready to use.
 
 ```bash
 git clone https://github.com/meriltitus/VERA.git
-cd VERA/vera
+cd VERA
 
 python -m venv .venv
 # Windows:
@@ -99,7 +99,6 @@ python -m venv .venv
 source .venv/bin/activate
 
 pip install -r requirements.txt
-pip install pydantic-settings==2.4.0 python-pptx==0.6.23
 ```
 
 ### Configure

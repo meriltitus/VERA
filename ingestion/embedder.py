@@ -42,7 +42,7 @@ def embed_and_store(chunks: List[Dict[str, Any]], collection_name: str = "vera_d
         log.warning("No chunks provided to embedder. Skipping.")
         return 0
 
-    log.info(f"Initializing Ollama embeddings with model: {settings.ollama_model}")
+    log.info(f"Initializing Ollama embeddings with model: {settings.ollama_embed_model}")
     embedder = OllamaEmbeddings(
         model=settings.ollama_embed_model,
         base_url=settings.ollama_base_url,
