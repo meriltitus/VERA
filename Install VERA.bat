@@ -64,8 +64,8 @@ echo.
 :: Install dependencies
 echo  Installing dependencies (this may take a few minutes)...
 call .venv\Scripts\activate.bat
-.venv\Scripts\python.exe -m pip install --upgrade pip --quiet
-.venv\Scripts\python.exe -m pip install -r requirements.txt --quiet
+.venv\Scripts\python.exe -m pip install --upgrade pip setuptools wheel --quiet
+.venv\Scripts\python.exe -m pip install --only-binary=:all: -r requirements.txt --quiet
 echo  [OK] Dependencies installed.
 echo.
 
