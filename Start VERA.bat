@@ -37,5 +37,5 @@ echo.
 :: Open browser after short delay
 start "" timeout /t 4 /nobreak >nul & start "" "http://localhost:8501"
 
-:: Start Streamlit
-streamlit run ui/app.py --server.headless true --browser.gatherUsageStats false
+:: Start Streamlit using venv python
+.venv\Scripts\python.exe -m streamlit run ui/app.py --server.headless true --browser.gatherUsageStats false
