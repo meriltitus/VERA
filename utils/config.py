@@ -6,7 +6,7 @@ from pathlib import Path
 class Settings(BaseSettings):
     # Ollama — inference model (reasoning, generation)
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "llama3"
+    ollama_model: str = "llama3.2:3b"
 
     # Ollama — embedding model (separate from inference)
     ollama_embed_model: str = "nomic-embed-text"

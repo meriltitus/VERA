@@ -10,7 +10,7 @@ from utils.logger import get_logger
 log = get_logger(__name__)
 settings = get_settings()
 
-SUPPORTED_EXTENSIONS = {".pdf", ".pptx", ".ppt"}
+SUPPORTED_EXTENSIONS = {".pdf", ".pptx", ".ppt", ".txt", ".md", ".docx", ".png", ".jpg", ".jpeg"}
 
 
 def _load_pdf(path: Path, source_name: str) -> List[Dict[str, Any]]:
@@ -79,9 +79,91 @@ def _load_pptx(path: Path, source_name: str) -> List[Dict[str, Any]]:
     return results
 
 
+def _load_txt(path: Path, source_name: str) -> List[Dict[str, Any]]:
+    content = path.read_text(encoding="utf-8", errors="ignore")
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=settings.chunk_size,
+        chunk_overlap=settings.chunk_overlap,
+        separators=["\n\n", "\n", ".", " ", ""],
+    )
+    sub_chunks = splitter.split_text(content)
+    results = []
+    source_stem = Path(source_name).stem.replace(" ", "_")
+    for i, sub in enumerate(sub_chunks):
+        if len(sub.strip()) > 20:
+            results.append({
+                "text": sub.strip(),
+                "source": source_name,
+                "page": 1,
+                "chunk_id": f"{source_stem}_chunk_{i:04d}",
+            })
+    log.info(f"Loaded text file → {len(results)} chunks from {source_name}")
+    return results
+
+
+def _load_docx(path: Path, source_name: str) -> List[Dict[str, Any]]:
+    try:
+        import docx
+    except ImportError:
+        raise ImportError("python-docx not installed. Run: pip install python-docx")
+
+    doc = docx.Document(str(path))
+    full_text = "\n\n".join([p.text.strip() for p in doc.paragraphs if p.text.strip()])
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=settings.chunk_size,
+        chunk_overlap=settings.chunk_overlap,
+        separators=["\n\n", "\n", ".", " ", ""],
+    )
+    sub_chunks = splitter.split_text(full_text)
+    results = []
+    source_stem = Path(source_name).stem.replace(" ", "_")
+    for i, sub in enumerate(sub_chunks):
+        if len(sub.strip()) > 20:
+            results.append({
+                "text": sub.strip(),
+                "source": source_name,
+                "page": 1,
+                "chunk_id": f"{source_stem}_chunk_{i:04d}",
+            })
+    log.info(f"Loaded Word document → {len(results)} chunks from {source_name}")
+    return results
+
+
+def _load_image(path: Path, source_name: str) -> List[Dict[str, Any]]:
+    try:
+        from PIL import Image
+        import pytesseract
+        img = Image.open(str(path))
+        full_text = pytesseract.image_to_string(img).strip()
+    except Exception as e:
+        log.warning(f"OCR failed for {source_name}: {e}")
+        full_text = f"Image file {source_name}"
+
+    if not full_text or len(full_text) < 5:
+        full_text = f"Image document containing visual content: {source_name}"
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=settings.chunk_size,
+        chunk_overlap=settings.chunk_overlap,
+        separators=["\n\n", "\n", ".", " ", ""],
+    )
+    sub_chunks = splitter.split_text(full_text)
+    results = []
+    source_stem = Path(source_name).stem.replace(" ", "_")
+    for i, sub in enumerate(sub_chunks):
+        results.append({
+            "text": sub.strip(),
+            "source": source_name,
+            "page": 1,
+            "chunk_id": f"{source_stem}_chunk_{i:04d}",
+        })
+    log.info(f"Loaded Image file via OCR → {len(results)} chunks from {source_name}")
+    return results
+
+
 def load_and_chunk_pdf(pdf_path: str, real_filename: str = None) -> List[Dict[str, Any]]:
     """
-    Loads a PDF or PPTX and splits into chunks with citation metadata.
+    Loads a PDF, PPTX, TXT, MD, DOCX, or Image file and splits into chunks with citation metadata.
 
     Args:
         pdf_path: Path to the file (may be a temp path).
@@ -103,6 +185,12 @@ def load_and_chunk_pdf(pdf_path: str, real_filename: str = None) -> List[Dict[st
         results = _load_pdf(path, source_name)
     elif ext in {".pptx", ".ppt"}:
         results = _load_pptx(path, source_name)
+    elif ext in {".txt", ".md"}:
+        results = _load_txt(path, source_name)
+    elif ext == ".docx":
+        results = _load_docx(path, source_name)
+    elif ext in {".png", ".jpg", ".jpeg"}:
+        results = _load_image(path, source_name)
     else:
         raise ValueError(f"Unsupported file type: {ext}. Supported: {SUPPORTED_EXTENSIONS}")
 

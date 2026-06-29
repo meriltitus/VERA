@@ -100,12 +100,6 @@ Your response:"""
 def synthesize(router_output: Dict[str, Any]) -> Dict[str, Any]:
     """
     Takes router output, builds a prompt, calls Llama 3, returns a clean answer.
-
-    Args:
-        router_output: Output from query_handler.handle_query()
-
-    Returns:
-        Dict with query, query_type, answer, citations, chunks_used.
     """
     query = router_output["query"]
     query_type = router_output["query_type"]
@@ -113,7 +107,6 @@ def synthesize(router_output: Dict[str, Any]) -> Dict[str, Any]:
 
     log.info(f"Synthesizing answer for query_type='{query_type}' using {len(chunks)} chunks")
 
-    # If no relevant chunks found, return early without calling LLM
     if not chunks:
         return {
             "query": query,
@@ -132,7 +125,7 @@ def synthesize(router_output: Dict[str, Any]) -> Dict[str, Any]:
     llm = OllamaLLM(
         model=settings.ollama_model,
         base_url=settings.ollama_base_url,
-        temperature=0.1,       # Very low — stay factual, don't improvise
+        temperature=0.1,
         num_predict=512,
     )
 
@@ -147,3 +140,48 @@ def synthesize(router_output: Dict[str, Any]) -> Dict[str, Any]:
         "citations": citations,
         "chunks_used": len(chunks),
     }
+
+
+def synthesize_stream(router_output: Dict[str, Any]):
+    """
+    Yields tokens in real-time alongside citations metadata.
+    """
+    query = router_output["query"]
+    query_type = router_output["query_type"]
+    chunks = router_output["chunks"]
+
+    if not chunks:
+        yield {
+            "type": "meta",
+            "query": query,
+            "query_type": query_type,
+            "citations": [],
+            "chunks_used": 0,
+        }
+        yield {"type": "token", "content": "I could not find anything related to this in your uploaded documents. Please ask something covered in the material."}
+        return
+
+    context = build_context_block(chunks)
+    citations = build_citations(chunks)
+
+    yield {
+        "type": "meta",
+        "query": query,
+        "query_type": query_type,
+        "citations": citations,
+        "chunks_used": len(chunks),
+    }
+
+    prompt_template = PROMPTS.get(query_type, PROMPTS["conceptual"])
+    prompt = prompt_template.format(context=context, question=query)
+
+    llm = OllamaLLM(
+        model=settings.ollama_model,
+        base_url=settings.ollama_base_url,
+        temperature=0.1,
+        num_predict=512,
+    )
+
+    for chunk in llm.stream(prompt):
+        yield {"type": "token", "content": chunk}
+

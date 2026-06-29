@@ -27,9 +27,12 @@ def get_or_create_collection(client: chromadb.PersistentClient, collection_name:
     )
 
 
+import hashlib
+
+
 def embed_and_store(chunks: List[Dict[str, Any]], collection_name: str = "vera_docs") -> int:
     """
-    Generates embeddings for each chunk and stores them in ChromaDB.
+    Generates embeddings for each chunk and stores them in ChromaDB with Zero-Duplication hashing.
 
     Args:
         chunks: Output from loader.load_and_chunk_pdf()
@@ -42,32 +45,49 @@ def embed_and_store(chunks: List[Dict[str, Any]], collection_name: str = "vera_d
         log.warning("No chunks provided to embedder. Skipping.")
         return 0
 
+    client = get_chroma_client()
+    collection = get_or_create_collection(client, collection_name)
+
+    # Stage 1: Deduplicate chunks by content hash
+    existing_ids = set(collection.get()["ids"]) if collection.count() > 0 else set()
+    to_embed = []
+    seen_hashes = set()
+
+    for c in chunks:
+        content_hash = hashlib.md5(c["text"].encode('utf-8')).hexdigest()[:16]
+        chunk_id = f"chunk_{content_hash}"
+        if content_hash not in seen_hashes and chunk_id not in existing_ids:
+            seen_hashes.add(content_hash)
+            c_copy = dict(c)
+            c_copy["chunk_id"] = chunk_id
+            to_embed.append(c_copy)
+
+    if not to_embed:
+        log.info("Zero-Duplication Engine: All provided chunks already exist in vector storage. Skipping embedding.")
+        return 0
+
+    log.info(f"Zero-Duplication Engine: {len(to_embed)} new unique chunks to embed (skipped duplicates).")
     log.info(f"Initializing Ollama embeddings with model: {settings.ollama_embed_model}")
     embedder = OllamaEmbeddings(
         model=settings.ollama_embed_model,
         base_url=settings.ollama_base_url,
     )
 
-    client = get_chroma_client()
-    collection = get_or_create_collection(client, collection_name)
-
-    texts = [c["text"] for c in chunks]
-    ids = [c["chunk_id"] for c in chunks]
+    texts = [c["text"] for c in to_embed]
+    ids = [c["chunk_id"] for c in to_embed]
     metadatas = [
         {
             "source": c["source"],
             "page": c["page"],
             "chunk_id": c["chunk_id"],
         }
-        for c in chunks
+        for c in to_embed
     ]
 
-    log.info(f"Generating embeddings for {len(texts)} chunks — this may take a moment...")
-
-    # Generate embeddings in one batch
+    log.info(f"Generating embeddings for {len(texts)} new chunks...")
     embeddings = embedder.embed_documents(texts)
 
-    log.info(f"Storing {len(embeddings)} embeddings in ChromaDB collection '{collection_name}'")
+    log.info(f"Storing {len(embeddings)} new embeddings in ChromaDB collection '{collection_name}'")
 
     collection.upsert(
         ids=ids,
@@ -77,6 +97,6 @@ def embed_and_store(chunks: List[Dict[str, Any]], collection_name: str = "vera_d
     )
 
     stored_count = collection.count()
-    log.info(f"ChromaDB collection '{collection_name}' now contains {stored_count} total chunks.")
+    log.info(f"ChromaDB collection '{collection_name}' now contains {stored_count} total unique chunks.")
 
     return len(embeddings)

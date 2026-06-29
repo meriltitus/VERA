@@ -1,16 +1,10 @@
 from typing import List, Dict, Any
 
 
-def build_citations(chunks: List[Dict[str, Any]]) -> List[str]:
+def build_citations(chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Builds clean citation strings from retrieved chunks.
+    Builds clean citation dicts from retrieved chunks including source, page, and text snippet.
     Deduplicates by source + page combination.
-
-    Args:
-        chunks: Retrieved chunks from query_handler.
-
-    Returns:
-        List of formatted citation strings e.g. ["[1] NSP1.pdf, Page 2"]
     """
     seen = set()
     citations = []
@@ -18,13 +12,26 @@ def build_citations(chunks: List[Dict[str, Any]]) -> List[str]:
     for chunk in chunks:
         source = chunk.get("source", "Unknown")
         page = chunk.get("page", "?")
+        text = chunk.get("text", "").strip()
         key = f"{source}::p{page}"
 
         if key not in seen:
             seen.add(key)
-            citations.append(f"{source}, Page {page}")
+            citations.append({
+                "source": source,
+                "page": page,
+                "snippet": text,
+            })
 
-    return [f"[{i+1}] {c}" for i, c in enumerate(citations)]
+    res = []
+    for i, c in enumerate(citations):
+        res.append({
+            "label": f"[{i+1}] {c['source']}, Page {c['page']}",
+            "source": c["source"],
+            "page": c["page"],
+            "snippet": c["snippet"],
+        })
+    return res
 
 
 def build_context_block(chunks: List[Dict[str, Any]]) -> str:
