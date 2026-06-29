@@ -7,7 +7,7 @@ VERA is an advanced local AI assistant that reads your documents and answers que
 
 ---
 
-## 🚀 Features in VERA v1.1
+## 🚀 Features in VERA 
 
 - **⚡ Fast Response Engine (`llama3.2:3b`)**: 3-4x faster answer generation under 40 seconds.
 - **🌊 Real-Time Token Streaming**: Watch words stream live on screen in 1–2 seconds.
