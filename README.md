@@ -1,4 +1,4 @@
-# VERA v1.1 — Verifiable Evidence & Reasoning Architecture
+# VERA — Verifiable Evidence & Reasoning Architecture
 
 VERA is an advanced local AI assistant that reads your documents and answers questions about them. It runs **100% on your computer** — no internet required after setup, no data sent anywhere, completely private and local-first.
 
